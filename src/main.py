@@ -90,15 +90,7 @@ def main() -> None:
         try:
             videos = fetch_feed(channel.channel_id)
         except RSSFetchError as e:
-            logger.error("RSSフィード取得失敗: %s: %s", channel.name, e)
-            try:
-                send_error_notification(
-                    discord_webhook_url,
-                    "\u26a0\ufe0f RSSフィード取得エラー",
-                    f"チャンネル: {channel.name}\n{e}",
-                )
-            except Exception:
-                pass
+            logger.warning("RSSフィード取得失敗: %s: %s", channel.name, e)
             continue
 
         # フィルタリング

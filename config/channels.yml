@@ -3,6 +3,14 @@ channels:
     name: "カブ主優待ライダー"
     prompt_template: null  # nullの場合デフォルトプロンプトを使用
 
+  - channel_id: "UCiqTOd3DFZXLgxvsz45f1SA"
+    name: "割安・高配当・株主優待銘柄の分析チャンネル"
+    prompt_template: null
+
+  - channel_id: "UCBCPSOtwTWuDjS-b-GyVUGw"
+    name: "モーモーパパ 100人アンケートで楽しく投資スキルアップ"
+    prompt_template: null
+
   # - channel_id: "UCyyyyyyyyyyyyyyyyyy"
   #   name: "チャンネルB"
   #   prompt_template: |

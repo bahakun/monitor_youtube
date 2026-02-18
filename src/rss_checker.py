@@ -58,14 +58,15 @@ def _fetch_with_retry(url: str, channel_id: str) -> str:
             if response.status_code == 200:
                 return response.text
 
-            # 4xx はリトライしない
-            if 400 <= response.status_code < 500:
+            # 404はYouTube側の一時的エラーの可能性があるためリトライ対象
+            # それ以外の4xx はリトライしない
+            if 400 <= response.status_code < 500 and response.status_code != 404:
                 raise RSSFetchError(
                     f"RSSフィード取得失敗(HTTP {response.status_code}): "
                     f"チャンネル {channel_id}"
                 )
 
-            # 5xx はリトライ
+            # 5xx / 404 はリトライ
             last_error = RSSFetchError(
                 f"RSSフィード取得失敗(HTTP {response.status_code}): "
                 f"チャンネル {channel_id}"

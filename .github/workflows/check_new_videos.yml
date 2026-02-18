@@ -3,7 +3,7 @@ name: YouTube Summary Notifier
 on:
   schedule:
     - cron: '*/5 * * * *'
-  workflow_dispatch:  # 手動実行も可能
+  workflow_dispatch:
 
 permissions:
   contents: write  # notified.json の自動コミットに必要

@@ -18,6 +18,11 @@ class RateLimitError(SummarizerError):
     pass
 
 
+class TokenLimitError(SummarizerError):
+    """Gemini APIトークン上限超過（動画が長すぎる）"""
+    pass
+
+
 class DiscordNotifyError(AppError):
     """Discord通知送信失敗"""
     pass

@@ -4,7 +4,7 @@ import time
 
 import requests
 
-from src.exceptions import RateLimitError, SummarizerError
+from src.exceptions import RateLimitError, SummarizerError, TokenLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,10 @@ def _call_api_with_retry(
             # 400: リクエスト不正 — リトライせず
             if response.status_code == 400:
                 error_msg = _extract_error_message(response)
+                if "token" in error_msg.lower() and "exceed" in error_msg.lower():
+                    raise TokenLimitError(
+                        f"動画が長すぎてGemini APIのトークン上限を超過: {video_url}"
+                    )
                 raise SummarizerError(
                     f"Gemini APIリクエストエラー(HTTP 400): {video_url}: {error_msg}"
                 )

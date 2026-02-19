@@ -14,6 +14,7 @@ from src.exceptions import (
     RateLimitError,
     RSSFetchError,
     SummarizerError,
+    TokenLimitError,
 )
 from src.image_generator import cleanup_temp_image, generate_infographic
 from src.history_manager import HistoryManager
@@ -126,6 +127,10 @@ def main() -> None:
                 logger.warning("Gemini APIレートリミット: %s - 残りは次回実行時に処理", e)
                 rate_limited = True
                 break
+            except TokenLimitError as e:
+                logger.warning("トークン上限超過のためスキップ: %s: %s", video.title, e)
+                history.mark_notified(video)
+                continue
             except SummarizerError as e:
                 logger.error("要約生成失敗: %s: %s", video.title, e)
                 try:

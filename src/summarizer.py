@@ -37,40 +37,52 @@ def summarize(
         SummarizerError: API呼び出し失敗時
         RateLimitError: レートリミット超過時（429）
     """
-    prompt = prompt_template
+    for is_fallback in [False, True]:
+        prompt = _build_fallback_prompt(video_url) if is_fallback else prompt_template
 
-    request_body = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": prompt},
-                    {
-                        "fileData": {
-                            "mimeType": "video/*",
-                            "fileUri": video_url,
-                        }
-                    },
-                ]
-            }
-        ],
-        "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 16384,
-        },
-    }
+        request_body = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": prompt},
+                        {
+                            "fileData": {
+                                "mimeType": "video/*",
+                                "fileUri": video_url,
+                            }
+                        },
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 65536,
+            },
+        }
 
-    response_data = _call_api_with_retry(api_key, request_body, video_url)
-    raw_output = _extract_summary(response_data, video_url)
+        response_data = _call_api_with_retry(api_key, request_body, video_url)
+        raw_output, finish_reason = _extract_summary(response_data, video_url)
 
-    # GeminiがMarkdownコードブロックで囲む場合があるので除去
-    html_content = _extract_html(raw_output)
+        if finish_reason == "MAX_TOKENS" and not is_fallback:
+            logger.warning(
+                "MAX_TOKENSで出力が途中終了 - 短縮プロンプトで再試行: %s", video_url
+            )
+            time.sleep(4)
+            continue
 
-    logger.info(
-        "HTML生成完了 - 動画URL: %s (%d文字)",
-        video_url,
-        len(html_content),
-    )
-    return html_content
+        # GeminiがMarkdownコードブロックで囲む場合があるので除去
+        html_content = _extract_html(raw_output)
+
+        logger.info(
+            "HTML生成完了 - 動画URL: %s (%d文字)%s",
+            video_url,
+            len(html_content),
+            " [短縮プロンプト]" if is_fallback else "",
+        )
+        return html_content
+
+    # ここには到達しない（ループ内でreturnされるため）
+    raise SummarizerError(f"HTML生成に失敗: {video_url}")
 
 
 def _call_api_with_retry(
@@ -138,8 +150,8 @@ def _call_api_with_retry(
     raise last_error
 
 
-def _extract_summary(response_data: dict, video_url: str) -> str:
-    """APIレスポンスから要約テキストを抽出する。"""
+def _extract_summary(response_data: dict, video_url: str) -> tuple[str, str]:
+    """APIレスポンスから要約テキストとfinishReasonを抽出する。"""
     try:
         candidates = response_data.get("candidates", [])
         if not candidates:
@@ -147,7 +159,7 @@ def _extract_summary(response_data: dict, video_url: str) -> str:
 
         candidate = candidates[0]
         finish_reason = candidate.get("finishReason", "")
-        if finish_reason != "STOP":
+        if finish_reason not in ("STOP", "MAX_TOKENS"):
             logger.warning(
                 "Gemini API finishReason が STOP ではありません: %s (動画: %s)",
                 finish_reason,
@@ -168,12 +180,38 @@ def _extract_summary(response_data: dict, video_url: str) -> str:
         if total_tokens:
             logger.info("トークン使用量: %d (動画: %s)", total_tokens, video_url)
 
-        return summary
+        return summary, finish_reason
 
     except (KeyError, IndexError, TypeError) as e:
         raise SummarizerError(
             f"Gemini APIレスポンスの解析に失敗: {video_url}: {e}"
         ) from e
+
+
+# 短縮プロンプト（MAX_TOKENS時のフォールバック）
+_FALLBACK_PROMPT = """以下のYouTube動画の内容を、シンプルな日本語HTMLインフォグラフィックに変換してください。
+
+## デザイン仕様
+- 背景色: #FFF8F0
+- アクセントカラー: #F25C05（オレンジ）、#F2E63D（イエロー）
+- フォント: @import url('https://fonts.googleapis.com/css2?family=Yomogi&display=swap');
+- 横幅: 100%
+
+## レイアウト
+- ヘッダー: タイトル（大）＋日付
+- 本文: 動画の要点を箇条書き（5〜8項目）
+- フッター: 出典情報
+
+## 出力形式
+【重要】完全なHTMLドキュメント（<!DOCTYPE html>から</html>まで）を出力してください。
+CSSはすべて<style>タグ内にインラインで記述してください。
+外部画像は使用せず、CSS・絵文字のみで視覚要素を表現してください。
+HTMLコード以外のテキストは一切出力しないでください。
+最初の文字は必ず「<」で始めてください。"""
+
+
+def _build_fallback_prompt(video_url: str) -> str:
+    return _FALLBACK_PROMPT
 
 
 def _extract_html(raw_output: str) -> str:

@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 MODEL = "gemini-2.5-flash"
 ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 
-# リトライ設定
-MAX_RETRIES = 3
-BACKOFF_SECONDS = [10, 30, 60]
+# リトライ設定（タイムアウト600秒×2回 = 最大20分）
+MAX_RETRIES = 2
+BACKOFF_SECONDS = [10, 30]
 
 
 def summarize(
@@ -97,7 +97,7 @@ def _call_api_with_retry(
                 ENDPOINT,
                 params={"key": api_key},
                 json=request_body,
-                timeout=300,
+                timeout=600,
             )
 
             if response.status_code == 200:

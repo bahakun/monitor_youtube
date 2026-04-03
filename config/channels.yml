@@ -7,10 +7,6 @@ channels:
     name: "割安・高配当・株主優待銘柄の分析チャンネル"
     prompt_template: null
 
-  - channel_id: "UCBCPSOtwTWuDjS-b-GyVUGw"
-    name: "モーモーパパ 100人アンケートで楽しく投資スキルアップ"
-    prompt_template: null
-
   # - channel_id: "UCyyyyyyyyyyyyyyyyyy"
   #   name: "チャンネルB"
   #   prompt_template: |

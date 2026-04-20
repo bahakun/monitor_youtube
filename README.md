@@ -93,5 +93,36 @@ settings:
 │   ├── history_manager.py # 通知履歴管理
 │   ├── models.py          # データ型定義
 │   └── exceptions.py      # 例外クラス
+├── tests/                 # 単体テスト（pytest）
 └── requirements.txt       # 依存パッケージ
 ```
+
+## 開発ガイド
+
+### ブランチ戦略
+
+**GitHub Flow** を採用。
+
+| ブランチ | 用途 |
+|---|---|
+| `master` | 本番相当。GitHub Actions はこのブランチで動作する |
+| `feature/*` | 新機能・修正用の作業ブランチ |
+
+**作業の流れ:**
+
+1. `master` から `feature/xxx` ブランチを作成
+2. 変更をコミット・プッシュ
+3. Pull Request を作成してレビュー
+4. `master` にマージ（squash merge 推奨）
+5. 作業ブランチを削除
+
+### テストの実行
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/ -v
+```
+
+### 変更履歴
+
+リリース内容は [CHANGELOG.md](CHANGELOG.md) を参照。
